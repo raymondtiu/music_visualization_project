@@ -1,6 +1,7 @@
 import pandas as pd
 import datetime as dt
 from wtforms import Form, StringField
+import requests
 
 from flask import (
     Flask,
@@ -21,13 +22,51 @@ Base = automap_base()
 Base.prepare(engine, reflect=True)
 # Create our session (link) from Python to the DB
 session = Session(engine)
-
 #################################################
 # Flask Setup
 #################################################
 app = Flask(__name__)
 
-
+# Use the following functions to convert api info to GeoJSON
+def df_to_geojson(df, properties, lat='lat', lon='lng'):
+    geojson = {'type':'FeatureCollection', 'features':[]}
+    for _, row in df.iterrows():
+        feature = {'type':'Feature',
+                   'properties':{},
+                   'geometry':{'type':'Point',
+                               'coordinates':[]}}
+        feature['geometry']['coordinates'] = [row[lon],row[lat]]
+        for prop in properties:
+            feature['properties'][prop] = row[prop]
+        geojson['features'].append(feature)
+    return geojson
+def get_geojson(df):
+    df = df
+    properties = ['event_name','popularity','date','city']
+    lat = 'lat'
+    lon = 'lng'
+    geojson = df_to_geojson(df,properties,lat=lat,lon=lon)
+    return geojson
+def sqlquery_to_df(sqlresults):
+    df = pd.DataFrame({'artist_name':[],
+                       'event_name':[],
+                       'city':[],
+                       'date':[],
+                       'lat':[],
+                       'lng':[],
+                       'popularity':[]
+    })
+    for result in sqlresults:
+        df = df.append({
+            'artist_name':result.artist_name,
+            'event_name':result.consert_name,
+            'city':result.city,
+            'date':result.date,
+            'lat':result.lat,
+            'lng':result.lng,
+            'popularity':result.popularity
+            },ignore_index=True) 
+    return df
 
 @app.route('/')
 def home():
@@ -55,6 +94,14 @@ def api(artist):
     results = session.query(artist_events.artist_name, artist_events.city, artist_events.consert_name, artist_events.date, artist_events.lat, artist_events.lng, artist_events.popularity).filter(artist_events.artist_name == artist).all()
     return jsonify(results)
 
+@app.route('/api_geojson/<artist>')
+def api_geojson(artist):
+    artist_events = Base.classes.artist_events
+    results = session.query(artist_events.artist_name, artist_events.city, artist_events.consert_name, artist_events.date, artist_events.lat, artist_events.lng, artist_events.popularity)      .filter(artist_events.artist_name == artist).all()
+    df = sqlquery_to_df(results)
+    geojson = get_geojson(df)
+    print("Loading GeoJSON...")
+    return jsonify(geojson)
 
 if __name__ == '__main__':
     app.run(debug=True)
