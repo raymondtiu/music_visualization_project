@@ -6,9 +6,9 @@ var basemap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?
 });
 
 var map = L.map("map", {
-    center: [37.09, -95.71],
-    zoom: 5
-});
+            center: [37.09, -95.71],
+            zoom: 5
+        });
 
 basemap.addTo(map);
 
@@ -65,10 +65,34 @@ var geojsonMarkerOptions = {
     fillOpacity: 0.8
 };
 
-var link = 'http://127.0.0.1:5000/api_geojson/PitBull';
+console.log("HERE");
+
+var EventData = function () {
+    var artistName = d3.select('input').property('value')
+    console.log(artistName)
+};
+
+
+
+var link = '/api_geojson/PitBull';
+
+function createFeatures(data) {
+    function onEachFeature(feature) {
+        layer.bindPopup(feature.properties.name);
+        var events = L.geoJSON(data);
+        createMap(events);
+    }
+};
+
 
 d3.json(link, function (data) {
+    // console.log(error);
+    console.log(data);
+    function onEachFeature(feature, layer) {
+        layer.bindPopup(feature.properties.city);
+    }
     // Creating a GeoJSON layer with the retrieved data
-    L.geoJson(data).addTo(map);
+    L.geoJSON(data, {
+        onEachFeature: onEachFeature
+    }).addTo(map);
 });
-
