@@ -1,16 +1,41 @@
-var basemap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
-    attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap </a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox </a>",
-    maxZoom: 18,
-    id: "mapbox.outdoors",
-    accessToken: API_KEY
-});
+function createMap (conserts) {
+    var basemap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+        attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap </a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox </a>",
+        maxZoom: 18,
+        id: "mapbox.outdoors",
+        accessToken: API_KEY
+    });
+    var darkmap = L.tileLayer("https://api.tiles.mapbox.com/v4/{id}/{z}/{x}/{y}.png?access_token={accessToken}", {
+        attribution: "Map data &copy; <a href=\"https://www.openstreetmap.org/\">OpenStreetMap</a> contributors, <a href=\"https://creativecommons.org/licenses/by-sa/2.0/\">CC-BY-SA</a>, Imagery © <a href=\"https://www.mapbox.com/\">Mapbox</a>",
+        maxZoom: 18,
+        id: "mapbox.dark",
+        accessToken: API_KEY
+    });
+    var baseMaps = {
+        "Street Map": basemap,
+        "Dark Map": darkmap
+    };
+    var overlayMaps = {
+        Artist: conserts
+    };
+    var map = L.map("map", {
+                center: [37.09, -95.71],
+                zoom: 5,
+                layers: [basemap, conserts]
+    });
+    L.control.layers(baseMaps, overlayMaps, {
+        collapsed: false
+    }).addTo(map);
+}
 
-var map = L.map("map", {
-            center: [37.09, -95.71],
-            zoom: 5
-        });
-
-basemap.addTo(map);
+function createFeatures(data) {
+    function onEachFeature(feature, layer) {
+        layer.bindPopup("<h3>" + feature.properties.name + "</h3>");
+    var events = L.geoJSON(data, {
+        onEachFeature: onEachFeature        
+    });
+    createMap(events);
+}
 
 var slider = {
     'type': "FeatureCollection",
@@ -72,27 +97,11 @@ var EventData = function () {
     console.log(artistName)
 };
 
-
-
-var link = '/api_geojson/PitBull';
-
-function createFeatures(data) {
-    function onEachFeature(feature) {
-        layer.bindPopup(feature.properties.name);
-        var events = L.geoJSON(data);
-        createMap(events);
-    }
-};
-
+var link = "/api_geojson/" + artistName;
 
 d3.json(link, function (data) {
     // console.log(error);
     console.log(data);
-    function onEachFeature(feature, layer) {
-        layer.bindPopup(feature.properties.city);
-    }
     // Creating a GeoJSON layer with the retrieved data
-    L.geoJSON(data, {
-        onEachFeature: onEachFeature
-    }).addTo(map);
+    createFeatures(data);
 });
